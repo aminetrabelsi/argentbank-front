@@ -44,7 +44,7 @@ const Login = () => {
         .unwrap()
         .then(() => {
           navigate("/profile");
-          window.location.reload();
+          // window.location.reload();
         })
         .catch((message) => {
           setErrorMessage(message);
