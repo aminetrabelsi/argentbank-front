@@ -2,16 +2,18 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import { fetchProfile } from "/src/redux/slices/profile";
+import EditForm from "../../components/EditForm";
 
 const Profile = () => {
   const dispatch = useDispatch();
+  const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState();
 
   const { token } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    if (token) {
+    if (token && !isEditing) {
       dispatch(fetchProfile({ token }))
         .unwrap()
         .then((data) => {
@@ -22,7 +24,7 @@ const Profile = () => {
           console.log(error);
         });
     }
-  }, [dispatch, token]);
+  }, [dispatch, token, isEditing]);
 
   return (
     <main className="main bg-dark">
@@ -32,7 +34,17 @@ const Profile = () => {
           <br />
           {loading ? "loading..." : name}
         </h1>
-        <button className="edit-button">Edit Name</button>
+        {isEditing ? (
+          <EditForm
+            first={name.split(" ")[0]}
+            last={name.split(" ")[1]}
+            handleCancel={() => setIsEditing(false)}
+          />
+        ) : (
+          <button className="edit-button" onClick={() => setIsEditing(true)}>
+            Edit Name
+          </button>
+        )}
       </div>
       <h2 className="sr-only">Accounts</h2>
       <section className="account">
