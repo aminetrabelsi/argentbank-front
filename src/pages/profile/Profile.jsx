@@ -1,30 +1,35 @@
 import { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
 
-import { fetchProfile } from "/src/redux/slices/profile";
+import { useAuth, useProfile } from "/src/store/hooks";
+
 import EditForm from "../../components/EditForm";
+import { observer } from "mobx-react-lite";
 
-const Profile = () => {
-  const dispatch = useDispatch();
+const Profile = observer(() => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [name, setName] = useState();
 
-  const { token } = useSelector((state) => state.auth);
+  const auth = useAuth();
+  const profileStore = useProfile();
+
+  const fetchProfile = async (token, profileStore) => {
+    try {
+      await profileStore.fetchProfile({ token });
+      setLoading(false);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   useEffect(() => {
-    if (token && !isEditing) {
-      dispatch(fetchProfile({ token }))
-        .unwrap()
-        .then((data) => {
-          setName(`${data.firstName} ${data.lastName}`);
-          setLoading(false);
-        })
-        .catch((error) => {
-          console.log(error);
-        });
+    const fetchData = async () => {
+      setLoading(true);
+      await fetchProfile(auth.token, profileStore);
+    };
+    if (auth.token && !isEditing) {
+      fetchData();
     }
-  }, [dispatch, token, isEditing]);
+  }, [auth.token, isEditing, profileStore]);
 
   return (
     <main className="main bg-dark">
@@ -32,14 +37,10 @@ const Profile = () => {
         <h1>
           Welcome back
           <br />
-          {loading ? "loading..." : name}
+          {loading ? "loading..." : profileStore.fullName}
         </h1>
         {isEditing ? (
-          <EditForm
-            first={name.split(" ")[0]}
-            last={name.split(" ")[1]}
-            handleCancel={() => setIsEditing(false)}
-          />
+          <EditForm handleCancel={() => setIsEditing(false)} />
         ) : (
           <button className="edit-button" onClick={() => setIsEditing(true)}>
             Edit Name
@@ -79,6 +80,6 @@ const Profile = () => {
       </section>
     </main>
   );
-};
+});
 
 export default Profile;

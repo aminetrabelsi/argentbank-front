@@ -1,27 +1,27 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router";
-import { useDispatch, useSelector } from "react-redux";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { login } from "/src/redux/slices/auth";
+import { useAuth } from "/src/store/hooks";
+
 import { ErrorText, InputText } from "/src/components";
+import { observer } from "mobx-react-lite";
 
 const schema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
+  isRemembered: z.boolean().optional(),
 });
 
-const Login = () => {
+const Login = observer(() => {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState();
 
-  const { isLoggedIn } = useSelector((state) => state.auth);
-
+  const auth = useAuth();
   const {
     register,
     handleSubmit,
@@ -30,33 +30,29 @@ const Login = () => {
     defaultValues: {
       email: "",
       password: "",
+      isRemembered: false,
     },
     resolver: zodResolver(schema),
   });
 
   const onSubmit = async (data) => {
-    const { email, password } = data;
     try {
       setLoading(true);
       setErrorMessage(null);
 
-      dispatch(login({ email, password }))
-        .unwrap()
-        .then(() => {
-          navigate("/profile");
-          // window.location.reload();
-        })
-        .catch((message) => {
-          setErrorMessage(message);
-          setLoading(false);
-        });
+      await auth.login(data);
+      if (auth.token) {
+        navigate("/profile");
+      }
+      setLoading(false);
     } catch (error) {
       setErrorMessage(error.message);
       setLoading(false);
     }
   };
 
-  if (isLoggedIn) {
+  const token = JSON.parse(localStorage.getItem("token"));
+  if (token) {
     return <Navigate to="/profile" />;
   }
 
@@ -85,7 +81,11 @@ const Login = () => {
             labelTitle="Password"
           />
           <div className="input-remember">
-            <input type="checkbox" id="remember-me" />
+            <input
+              type="checkbox"
+              id="remember-me"
+              {...register("isRemembered")}
+            />
             <label htmlFor="remember-me">Remember me</label>
           </div>
           {errors.email && (
@@ -109,6 +109,6 @@ const Login = () => {
       </section>
     </main>
   );
-};
+});
 
 export default Login;

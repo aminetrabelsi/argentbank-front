@@ -1,44 +1,38 @@
 import { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link } from "react-router";
+import { observer } from "mobx-react-lite";
 
-import { logout } from "/src/redux/slices/auth";
-import { fetchProfile } from "/src/redux/slices/profile";
+import { useAuth, useProfile } from "/src/store/hooks";
 
-const Header = () => {
-  const [loading, setLoading] = useState(false);
-  const [firstName, setFirstName] = useState();
-
-  const { isLoggedIn } = useSelector((state) => state.auth);
+const Header = observer(() => {
   let navigate = useNavigate();
-  const dispatch = useDispatch();
+  const [loading, setLoading] = useState(false);
 
-  const token = JSON.parse(localStorage.getItem("token"));
+  const auth = useAuth();
+  const profileStore = useProfile();
+
+  const fetchProfile = async (token, profileStore) => {
+    try {
+      await profileStore.fetchProfile({ token });
+      setLoading(false);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   useEffect(() => {
-    if (token) {
-      setLoading(true);
-      dispatch(fetchProfile({ token }))
-        .unwrap()
-        .then((data) => {
-          setFirstName(`${data.firstName}`);
-          setLoading(false);
-        })
-        .catch((error) => {
-          console.log(error);
-        });
-    }
-  }, [dispatch, token]);
+    const fetchData = async () => {
+      if (auth.token) {
+        setLoading(true);
+        await fetchProfile(auth.token, profileStore);
+      }
+    };
+    fetchData();
+  }, [auth.token, profileStore]);
 
   const handleSignOut = () => {
-    dispatch(logout())
-      .unwrap()
-      .then(() => {
-        navigate("/");
-      })
-      .catch((message) => {
-        console.log(message);
-      });
+    auth.logout();
+    navigate("/");
   };
 
   return (
@@ -51,11 +45,11 @@ const Header = () => {
         />
         <h1 className="sr-only">Argent Bank</h1>
       </Link>
-      {isLoggedIn ? (
+      {auth.token ? (
         <div>
           <Link to="/profile" className="main-nav-item">
             <i className="fa fa-user-circle"></i>
-            {loading ? "loading..." : firstName}
+            {loading ? "loading..." : profileStore.firstName}
           </Link>
           <Link to="/" className="main-nav-item" onClick={handleSignOut}>
             <i className="fa fa-sign-out"></i>
@@ -72,6 +66,6 @@ const Header = () => {
       )}
     </nav>
   );
-};
+});
 
 export default Header;

@@ -1,24 +1,25 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
-import { useDispatch } from "react-redux";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
+import { useAuth, useProfile } from "/src/store/hooks";
+
 import { ErrorText, InputText } from "/src/components";
-import { updateProfile } from "../redux/slices/profile";
+import { observer } from "mobx-react-lite";
 
 const schema = z.object({
   firstName: z.string().min(2),
   lastName: z.string().min(2),
 });
 
-const EditForm = ({ first, last, handleCancel }) => {
+const EditForm = observer(({ handleCancel }) => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState();
-  const dispatch = useDispatch();
 
-  const token = JSON.parse(localStorage.getItem("token"));
+  const auth = useAuth();
+  const profileStore = useProfile();
 
   const {
     register,
@@ -26,8 +27,8 @@ const EditForm = ({ first, last, handleCancel }) => {
     formState: { errors },
   } = useForm({
     defaultValues: {
-      firstName: first,
-      lastName: last,
+      firstName: profileStore.firstName,
+      lastName: profileStore.lastName,
     },
     resolver: zodResolver(schema),
   });
@@ -38,17 +39,9 @@ const EditForm = ({ first, last, handleCancel }) => {
       setLoading(true);
       setErrorMessage(null);
 
-      dispatch(updateProfile({ token, data: { firstName, lastName } }))
-        .unwrap()
-        .then(() => {
-          setLoading(false);
-          console.log("ok");
-          handleCancel();
-        })
-        .catch((message) => {
-          setErrorMessage(message);
-          setLoading(false);
-        });
+      await profileStore.updateProfile(auth.token, { firstName, lastName });
+      setLoading(false);
+      handleCancel();
     } catch (error) {
       setErrorMessage(error.message);
       setLoading(false);
@@ -99,7 +92,7 @@ const EditForm = ({ first, last, handleCancel }) => {
       </form>
     </section>
   );
-};
+});
 
 EditForm.propTypes = {
   first: PropTypes.string.isRequired,
