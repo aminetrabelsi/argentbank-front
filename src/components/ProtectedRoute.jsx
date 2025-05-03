@@ -5,11 +5,15 @@ import { useAuth } from "/src/store/hooks";
 
 const ProtectedRoute = ({ children }) => {
   const auth = useAuth();
-  const token = JSON.parse(localStorage.getItem("token"));
-  if (token) {
-    auth.setToken(token);
+  const localToken = JSON.parse(localStorage.getItem("token"));
+  const sessionToken = JSON.parse(sessionStorage.getItem("token"));
+  if (localToken) {
+    auth.setToken(localToken);
   }
-  if (!token && !auth.token) {
+  if (sessionToken) {
+    auth.setToken(sessionToken);
+  }
+  if (!localToken && !auth.token && !sessionToken) {
     return <Navigate to="/login" replace />;
   }
   return children;

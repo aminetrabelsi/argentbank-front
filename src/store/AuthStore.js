@@ -18,6 +18,8 @@ export default class AuthStore {
     const tok = await AuthService.login(email, password);
     if (isRemembered) {
       localStorage.setItem("token", JSON.stringify(tok));
+    } else {
+      sessionStorage.setItem("token", JSON.stringify(tok));
     }
     this.setToken(tok);
   }
